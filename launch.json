@@ -1,0 +1,25 @@
+{
+  "kind": "custom_token",
+  "token": {
+    "contract": "SOS",
+    "name": "SOS",
+    "symbol": "SOS",
+    "decimals": 18,
+    "constructorArgs": [
+      "0x7821f1d95173f214f0ef23069f3a95a29de3f311",
+      "$factory",
+      "$poolManager",
+      "$launchNumber"
+    ],
+    "totalSupply": "1000000000000000000000000000"
+  },
+  "contracts": [],
+  "pool": {
+    "pairedCurrency": "0x0000000000000000000000000000000000000000",
+    "fee": 3000,
+    "tickSpacing": 60,
+    "initialPrice": "792281625142643375935439503360000"
+  },
+  "economics": {"poolBps":8800,"initialMarketCapWei":"10000000000000000000","remainderTo":"0x7821f1d95173f214f0ef23069f3a95a29de3f311"},
+  "notes": "SOS mints 1,000,000,000 tokens with 18 decimals once to msg.sender in its constructor. Constructor arguments are the immutable Dev recipient (the requester), factory, PoolManager and uint64 launch number, in that order. Ordinary transfers and transferFrom burn 1% and pay 1% to Dev, each rounded down in minor units; allowances are spent on the gross amount. Transfers operated by the configured factory, PoolManager or the factory's current distributorOf(launchNumber), and transfers into the PoolManager, are exempt so launch distribution, claims and pool settlement remain exact. Consequently, pool buys, pool sells, PoolManager-routed payments and ERC-6909 wrapping/redemption incur no SOS burn or Dev tax; a literal fee on every transfer is not enforced. Distributor exemption depends on the factory returning a valid ABI address within the 30,000-gas lookup limit; failed or malformed lookups fall back to ordinary taxation and can short claims. SOS does not enforce immutability of the factory's distributor mapping. SOS has no external mint, administrative controls or upgrade mechanism. No application contracts or initialization calls are required. The pool pairs SOS with native ETH at a 0.3% fee and tick spacing 60. initialPrice is provenance only: with ETH as currency0, sqrt(totalSupply / initialMarketCapWei) * 2^96 equals the stated value. The deployer derives the opening price from the supplied economics and totalSupply."
+}
