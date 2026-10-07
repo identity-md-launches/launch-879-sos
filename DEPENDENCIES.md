@@ -3,7 +3,10 @@
 All dependencies are source files copied from the supplied local `/home/seat6/vendor`
 mirrors. No git submodules, nested git directories, symlinks, package install,
 network resolution, compiler binaries or dependency download steps are required.
-Upstream sources were not modified.
+The delivered v4-core sources include `forge fmt` formatting changes (line
+wrapping and braces around a single-statement condition in `Hooks.sol`). The
+other dependencies retain their previously recorded bytes. The checksum file
+describes the delivered copies, not pristine upstream package hashes.
 
 | Directory | Source subset | Version reported by supplied mirror | License |
 | --- | --- | --- | --- |
@@ -16,3 +19,5 @@ License texts and available upstream package metadata are included. The SOS
 production artifact imports only the five OpenZeppelin source files, not the v4
 or testing libraries. `vendor-checksums.sha256` records the exact delivered
 dependency bytes; verify it with `sha256sum -c vendor-checksums.sha256`.
+Regenerate the affected hashes after formatting vendored files; an upstream
+hash does not validate a reformatted copy.

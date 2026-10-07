@@ -41,9 +41,11 @@ one mint event for the full supply.
 
 ## IMD launch compatibility
 
-The supplied protected floor requires exact factory distribution, distributor
-claims, pool seeding, and buys/sells. Applying a tax to these flows would fail
-that requirement. When launch configuration is enabled, a transfer is exempt
+The supplied protected floor requires exact factory distribution and distributor
+claims, pool seeding, and successful buys/sells. The launch reference additionally
+requires buys to deliver their quoted output exactly. Taxing sell settlement
+causes a shortfall; taxing PoolManager payouts reduces a buyer's receipt. When
+launch configuration is enabled, a transfer is exempt
 if **any** of these conditions holds:
 
 1. The immediate token caller is the configured factory.
@@ -60,10 +62,23 @@ taxed. An ordinary spender pulling **from** either one is also taxed. Receiving
 tokens through a claim does not exempt the claimant's later ordinary transfers.
 
 This means the requested "every transfer" fee applies to ordinary transfers;
-IMD launch mode necessarily excludes these protocol flows. Exempt routing,
-including PoolManager settlement, can move tokens without the tax. Fees are not
-guaranteed on every economic movement or every trade. Other exchanges are not
-exempt and must support fee-on-transfer assets.
+IMD launch mode excludes these protocol flows. **Both buys and sells through the
+configured PoolManager pay zero SOS burn and zero Dev tax.** Any holder can also
+route a payment through `unlock -> sync -> transferFrom -> settle -> take`, with
+no pool or swap, to deliver 100 SOS for a 100 SOS debit, zero tax and zero burn.
+Settling into ERC-6909 claims and later burning those claims to `take` SOS has
+the same result. Claims can change hands without an SOS transfer. These routes
+are permissionless and cost gas; they are not limited to the launch itself.
+
+The supplied revision proof reproduces this limitation. It remains unresolved
+as an economics requirement: preserving the existing exact settlement design
+does not satisfy a literal fee on every transfer. Removing only the PoolManager
+caller exemption would tax relay withdrawals and buys, delivering 98% of quoted
+output (subject to rounding); it would still leave sells untaxed. There is no
+claim here that the supplied floor's buy test checks exact output. The requester
+and launch integrator must resolve this scope conflict before release. A fee
+design covering pool volume requires a separately reviewed integration change.
+Other exchanges are not exempt and must support fee-on-transfer assets.
 
 The distributor cannot be a constructor argument because its address depends on
 the token address. Lookup occurs dynamically, uses `STATICCALL`, forwards at most
@@ -74,6 +89,10 @@ would also tax distributor claims, so the operator must verify the real registry
 before launching. The registry must return a standard ABI address within that
 gas budget. Whoever controls its answer controls which distributor caller is
 exempt; SOS itself has no registry or exemption setter.
+Changing that answer can exempt an arbitrary new operator and remove the real
+distributor's exemption, causing its claims to arrive short. The operator must
+confirm that the production factory fixes this mapping after launch; the local
+fixture intentionally allows mutation to test this trust assumption.
 
 ## Deployment parameters
 
@@ -92,8 +111,10 @@ constructor(address dev_, address factory_, address poolManager_, uint64 launchN
 
 No Dev wallet or network deployment addresses were provided in the assignment.
 None is invented or hardcoded into the production contract. The network deployer
-must resolve and verify them. Dev must not be zero or the token itself. Factory
-and PoolManager must either both be nonzero and distinct, or both be zero. Code
+must resolve and verify them. Dev must not be zero, the token itself, the
+configured factory, or the configured PoolManager; invalid Dev aliases revert
+with `InvalidDev()`. The standalone deployer may still be Dev. Factory and
+PoolManager must either both be nonzero and distinct, or both be zero. Code
 existence is an operator check, not a constructor check.
 
 For a **standalone token with no launch exemptions**, use
@@ -108,6 +129,11 @@ The eventual manifest should declare name/symbol `SOS`, decimals `18`, and the
 exact initial supply above, with no application contracts. The factory handles
 the swarm share and pool allocation. Economics, paired currency, live addresses,
 and launch metadata were not supplied; a fabricated `launch.json` is not included.
+No `launch.json` is present in this revision workspace. If the requester accepts
+the exemptions, the integration step must include the following explicit note
+in its manifest: "SOS pool buys, pool sells, arbitrary PoolManager-routed
+payments, and ERC-6909 wrapping/redemption incur no SOS burn or Dev tax. Ordinary
+non-exempt transfers burn 1% and pay 1% to Dev, rounded down in minor units."
 
 `script/Deploy.s.sol` is an **offline rehearsal only**. Its no-argument `run()`
 uses a clearly marked local Dev fixture and only runs on chain 31337. Its

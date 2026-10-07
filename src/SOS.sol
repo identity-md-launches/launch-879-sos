@@ -30,7 +30,9 @@ contract SOS is ERC20 {
     // Zero factory/manager are intentional standalone-mode sentinels, validated together below.
     // forge-lint: disable-next-line(missing-zero-check)
     constructor(address dev_, address factory_, address poolManager_, uint64 launchNumber_) ERC20("SOS", "SOS") {
-        if (dev_ == address(0) || dev_ == address(this)) revert InvalidDev();
+        if (dev_ == address(0) || dev_ == address(this) || dev_ == factory_ || dev_ == poolManager_) {
+            revert InvalidDev();
+        }
         if (
             (factory_ == address(0)) != (poolManager_ == address(0)) || (factory_ == address(0) && launchNumber_ != 0)
                 || (factory_ != address(0) && factory_ == poolManager_)

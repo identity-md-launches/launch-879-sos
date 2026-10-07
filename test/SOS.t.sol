@@ -43,6 +43,17 @@ contract SOSTest is Test {
         assertEq(second.balanceOf(BOB), SUPPLY);
     }
 
+    function test_standaloneDeployerCanBeDevAndStillPaysBurn() public {
+        vm.prank(DEV);
+        SOS standalone = new SOS(DEV, address(0), address(0), 0);
+        assertEq(standalone.balanceOf(DEV), SUPPLY);
+        vm.prank(DEV);
+        standalone.transfer(BOB, 100 ether);
+        assertEq(standalone.balanceOf(BOB), 98 ether);
+        assertEq(standalone.balanceOf(DEV), SUPPLY - 99 ether);
+        assertEq(standalone.totalSupply(), SUPPLY - 1 ether);
+    }
+
     function test_transferBurnsOnePercentAndPaysDevOnePercent() public {
         vm.expectEmit(true, true, false, true, address(token));
         emit Transfer(ALICE, address(0), 1 ether);

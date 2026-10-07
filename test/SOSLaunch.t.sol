@@ -38,6 +38,16 @@ contract SOSLaunchTest is Test {
         assertEq(token.dev(), DEV);
     }
 
+    function test_constructorRejectsFactoryAsDev() public {
+        vm.expectRevert(SOS.InvalidDev.selector);
+        factory.deployToken(address(factory), LAUNCH);
+    }
+
+    function test_constructorRejectsPoolManagerAsDev() public {
+        vm.expectRevert(SOS.InvalidDev.selector);
+        factory.deployToken(address(manager), LAUNCH);
+    }
+
     function test_swarmDistributionClaimsAndRemainderArriveWhole() public {
         factory.setDistributor(LAUNCH, DISTRIBUTOR);
         uint256 swarm = SUPPLY / 10;
