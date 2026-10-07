@@ -193,16 +193,11 @@ contract SOSTest is Test {
     }
 
     function test_invalidAddressesAndConfiguration() public {
-        vm.expectRevert(SOS.InvalidDev.selector);
-        new SOS(address(0), address(0), address(0), 0);
-        vm.expectRevert(SOS.InvalidLaunchConfiguration.selector);
-        new SOS(DEV, ALICE, address(0), 1);
-        vm.expectRevert(SOS.InvalidLaunchConfiguration.selector);
-        new SOS(DEV, address(0), ALICE, 1);
-        vm.expectRevert(SOS.InvalidLaunchConfiguration.selector);
-        new SOS(DEV, address(0), address(0), 1);
-        vm.expectRevert(SOS.InvalidLaunchConfiguration.selector);
-        new SOS(DEV, ALICE, ALICE, 1);
+        _assertConstructorReverts(address(0), address(0), address(0), 0, SOS.InvalidDev.selector);
+        _assertConstructorReverts(DEV, ALICE, address(0), 1, SOS.InvalidLaunchConfiguration.selector);
+        _assertConstructorReverts(DEV, address(0), ALICE, 1, SOS.InvalidLaunchConfiguration.selector);
+        _assertConstructorReverts(DEV, address(0), address(0), 1, SOS.InvalidLaunchConfiguration.selector);
+        _assertConstructorReverts(DEV, ALICE, ALICE, 1, SOS.InvalidLaunchConfiguration.selector);
         vm.expectRevert(abi.encodeWithSelector(IERC20Errors.ERC20InvalidReceiver.selector, address(0)));
         vm.prank(ALICE);
         token.transfer(address(0), 100 ether);
@@ -212,8 +207,39 @@ contract SOSTest is Test {
         vm.expectRevert(abi.encodeWithSelector(IERC20Errors.ERC20InvalidSpender.selector, address(0)));
         vm.prank(ALICE);
         token.approve(address(0), 100 ether);
-        vm.expectRevert(abi.encodeWithSelector(IERC20Errors.ERC20InvalidSender.selector, address(0)));
+        // transferFrom validates the allowance owner before reaching _transfer.
+        vm.expectRevert(abi.encodeWithSelector(IERC20Errors.ERC20InvalidApprover.selector, address(0)));
         token.transferFrom(address(0), ALICE, 0);
+        assertEq(token.totalSupply(), SUPPLY);
+        assertEq(token.balanceOf(ALICE), SUPPLY);
+        assertEq(token.balanceOf(DEV), 0);
+        assertEq(token.balanceOf(address(0)), 0);
+        assertEq(token.allowance(ALICE, address(0)), 0);
+        assertEq(token.allowance(address(0), address(this)), 0);
+    }
+
+    function _assertConstructorReverts(
+        address dev,
+        address factory,
+        address manager,
+        uint64 launchNumber,
+        bytes4 expectedError
+    ) private {
+        // Raw CREATE avoids Foundry 1.8.3 rewriting `new SOS` to deployCode,
+        // whose expected revert can terminate the test before later checks run.
+        bytes memory code = abi.encodePacked(type(SOS).creationCode, abi.encode(dev, factory, manager, launchNumber));
+        address deployed;
+        uint256 returnSize;
+        assembly ("memory-safe") {
+            deployed := create(0, add(code, 0x20), mload(code))
+            returnSize := returndatasize()
+        }
+        bytes memory reason = new bytes(returnSize);
+        assembly ("memory-safe") {
+            returndatacopy(add(reason, 0x20), 0, returnSize)
+        }
+        assertEq(deployed, address(0), "invalid constructor succeeded");
+        assertEq(reason, abi.encodeWithSelector(expectedError), "unexpected constructor revert");
     }
 
     function test_zeroRecipientRestoresAllowance() public {
